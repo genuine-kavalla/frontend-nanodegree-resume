@@ -62,10 +62,10 @@ var googleMap = '<div id="map"></div>';
 /*
 The International Name challenge in Lesson 2 where you'll create a function that will need this helper code to run. Don't delete! It hooks up your code to the button you'll be appending.
 */
-$(document).ready(function() {
-  $('button').click(function() {
-    var iName = inName() || function(){};
-    $('#name').html(iName);  
+$(document).ready(function () {
+  $('button').click(function () {
+    var iName = inName() || function (){};
+    $('#name').html(iName);
   });
 });
 
@@ -76,16 +76,17 @@ clickLocations = [];
 
 function logClicks(x,y) {
   clickLocations.push(
-    {
-      x: x,
-      y: y
-    }
+  {
+    x: x,
+    y: y
+  }
   );
   console.log('x location: ' + x + '; y location: ' + y);
 }
 
 $(document).click(function(loc) {
   // your code goes here!
+  logClicks(loc.pageX, loc.pageY);
 });
 
 
@@ -105,13 +106,16 @@ function initializeMap() {
 
   var locations;
 
+  // initialize an empty mapMarker array
+  var markerWindows = [];
+
   var mapOptions = {
     disableDefaultUI: true
   };
 
-  /* 
+  /*
   For the map to be displayed, the googleMap var must be
-  appended to #mapDiv in resumeBuilder.js. 
+  appended to #mapDiv in resumeBuilder.js.
   */
   map = new google.maps.Map(document.querySelector('#map'), mapOptions);
 
@@ -122,22 +126,26 @@ function initializeMap() {
   */
   function locationFinder() {
 
-    // initializes an empty array
+    // initializes an empty locations array
     var locations = [];
 
     // adds the single location property from bio to the locations array
-    locations.push(bio.contacts.location);
+    locations.push(bio.location);
 
     // iterates through school locations and appends each location to
     // the locations array
-    for (var school in education.schools) {
-      locations.push(education.schools[school].location);
+    var numSchools = education.schools.length;
+
+    for (var i = 0; i < numSchools; i++) {
+      locations.push(education.schools[i].location);
     }
 
     // iterates through work locations and appends each location to
     // the locations array
-    for (var job in work.jobs) {
-      locations.push(work.jobs[job].location);
+    var numJobs = work.jobs.length;
+
+    for (var i = 0; i < numJobs; i++) {
+      locations.push(work.jobs[i].location);
     }
 
     return locations;
@@ -149,7 +157,6 @@ function initializeMap() {
   about a single location.
   */
   function createMapMarker(placeData) {
-
     // The next lines save location data from the search result object to local variables
     var lat = placeData.geometry.location.lat();  // latitude from the place service
     var lon = placeData.geometry.location.lng();  // longitude from the place service
@@ -163,17 +170,52 @@ function initializeMap() {
       title: name
     });
 
+    // Add company names to the infoWindow for each location
+    var content = "<h2>" + name + "</h2>";
+    var numJobs = work.jobs.length;
+
+    for (var i = 0; i < numJobs; i++) {
+      if (work.jobs[i].location.indexOf(placeData.name) > -1) {
+        if (content.indexOf('Jobs') === -1) {
+          content = content + "<ul>Jobs";
+        }
+        content = content + "<li>" + work.jobs[i].employer + " - " + work.jobs[i].title + "</li>";
+      }
+    }
+    if (content.indexOf('Jobs') > -1) {
+      content = content + "</ul>";
+    }
+
+    // Add school names to the infoWindow for each location
+    var numSchools = education.schools.length;
+
+    for (var i = 0; i < numSchools; i++) {
+      if (education.schools[i].location.indexOf(placeData.name) > -1) {
+        if (content.indexOf('Schools') === -1) {
+          content = content + "<br><ul>Schools";
+        }
+        content = content + "<li> " + education.schools[i].name + "</li>";
+      }
+
+    }
     // infoWindows are the little helper windows that open when you click
     // or hover over a pin on a map. They usually contain more information
     // about a location.
     var infoWindow = new google.maps.InfoWindow({
-      content: name
+      //content: "<h1>" + name + "</h1>"
+      content: content
     });
+    console.log("name = " + placeData.name);
 
     // hmmmm, I wonder what this is about...
     google.maps.event.addListener(marker, 'click', function() {
       // your code goes here!
+      closeInfoWindows();
+      infoWindow.open(map, marker);
     });
+
+    // Add infoWindow to array of windows.
+    markerWindows.push(infoWindow);
 
     // this is where the pin actually gets added to the map.
     // bounds.extend() takes in a map location object
@@ -182,6 +224,14 @@ function initializeMap() {
     map.fitBounds(bounds);
     // center the map
     map.setCenter(bounds.getCenter());
+  }
+
+  // Close all infoWindows if they are open.
+  function closeInfoWindows() {
+    var numWindows = markerWindows.length;
+    for (var i = 0; i < numWindows; i++) {
+      markerWindows[i].close();
+    }
   }
 
   /*
@@ -235,11 +285,11 @@ Uncomment the code below when you're ready to implement a Google Map!
 */
 
 // Calls the initializeMap() function when the page loads
-//window.addEventListener('load', initializeMap);
+window.addEventListener('load', initializeMap);
 
 // Vanilla JS way to listen for resizing of the window
 // and adjust map bounds
 //window.addEventListener('resize', function(e) {
   //Make sure the map bounds get updated on page resize
-//  map.fitBounds(mapBounds);
+  //map.fitBounds(mapBounds);
 //});
